@@ -93,11 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mediaModal?.classList.contains('active')) closeMediaModal(); });
 
   // 1. Tab Navigation
-  const tabs = document.querySelectorAll(".tabs li");
-  const tabContents = document.querySelectorAll(".tab-content");
+const tabs = document.querySelectorAll(".tabs li");
+const tabContents = document.querySelectorAll(".tab-content");
 
   tabs.forEach(tab => {
-      tab.addEventListener("click", () => {
+  tab.addEventListener("click", () => {
           tabs.forEach(t => t.classList.remove("active"));
           tabContents.forEach(c => c.classList.remove("active"));
           tab.classList.add("active");
@@ -105,6 +105,117 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById(targetId).classList.add("active");
           if (targetId === "news") window.dispatchEvent(new CustomEvent("newsTabShown"));
       });
+  });
+
+  // Header controls: Language + Dark/Bright mode
+  const languageSelect = document.getElementById('languageSelect');
+  const themeModeBtn = document.getElementById('themeModeBtn');
+  const TRANSLATE_SELECTOR = [
+    '.header-content h1',
+    '.header-content .subtitle',
+    '.tabs li',
+    '.section-title',
+    '#education .item p',
+    '#education .item li',
+    '#skills .skill-group strong',
+    '#skills .skill-group p',
+    '#experience .item strong',
+    '#experience .item .institution',
+    '#experience .item li',
+    '#community .item strong',
+    '#community .item p',
+    '#community .item li',
+    '#projects .item strong',
+    '#projects .item p',
+    '#projects .item li',
+    '#contact .contact-intro',
+    '#contact .info-card strong',
+    '#contact .info-card span',
+    '#contact label',
+    '#contact .btn-submit',
+    '#entertainment .card h3',
+    '#entertainment .card .card-desc',
+    '#entertainment .btn-game',
+    '#entertainment .game-stat',
+    '#news .news-filter-btn',
+    '#news .news-retry-btn',
+    '#news .news-error p',
+    '.call-overlay-title strong',
+    '.call-overlay-sub'
+  ].join(',');
+
+  function updateThemeModeButton() {
+    if (!themeModeBtn) return;
+    const dark = document.body.classList.contains('dark-mode');
+    themeModeBtn.textContent = dark ? '☀ Bright' : '🌙 Dark';
+  }
+
+  themeModeBtn?.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    updateThemeModeButton();
+  });
+  updateThemeModeButton();
+
+  function shouldSkipTranslation(text) {
+    const t = (text || '').trim();
+    if (!t) return true;
+    // Skip mostly non-letter text (email, URLs, numbers, symbols)
+    const letters = (t.match(/[A-Za-z]/g) || []).length;
+    return letters < 2;
+  }
+
+  async function translateText(text, targetLang) {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Translation failed (${res.status})`);
+    const data = await res.json();
+    return (data?.[0] || []).map(part => part?.[0] || '').join('').trim() || text;
+  }
+
+  async function applyLanguage(targetLang) {
+    const nodes = Array.from(document.querySelectorAll(TRANSLATE_SELECTOR));
+    const toTranslate = [];
+    for (const node of nodes) {
+      const source = node.dataset.originalText || node.textContent;
+      if (!node.dataset.originalText) node.dataset.originalText = source;
+      if (targetLang === 'en') {
+        node.textContent = node.dataset.originalText;
+        continue;
+      }
+      if (!shouldSkipTranslation(node.dataset.originalText)) {
+        toTranslate.push(node);
+      }
+    }
+    if (targetLang === 'en') return;
+
+    const unique = [...new Set(toTranslate.map(n => n.dataset.originalText))];
+    const translatedMap = new Map();
+    await Promise.all(unique.map(async (txt) => {
+      try {
+        translatedMap.set(txt, await translateText(txt, targetLang));
+      } catch (_) {
+        translatedMap.set(txt, txt);
+      }
+    }));
+
+    for (const node of toTranslate) {
+      const translated = translatedMap.get(node.dataset.originalText);
+      if (translated) node.textContent = translated;
+    }
+  }
+
+  languageSelect?.addEventListener('change', async () => {
+    const lang = languageSelect.value || 'en';
+    const previous = languageSelect.dataset.previous || 'en';
+    languageSelect.disabled = true;
+    languageSelect.dataset.previous = lang;
+    try {
+      await applyLanguage(lang);
+    } catch (_) {
+      languageSelect.value = previous;
+    } finally {
+      languageSelect.disabled = false;
+    }
   });
 
   // Live World News
@@ -482,6 +593,21 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   setApiStatus('unknown');
 
+  function classifyApiError(err) {
+    const status = Number(err?.status || 0);
+    const msg = String(err?.message || '').toLowerCase();
+    const detail = JSON.stringify(err?.detail || {}).toLowerCase();
+    const combined = `${msg} ${detail}`;
+
+    if (combined.includes('resource_exhausted') || combined.includes('quota')) {
+      return { state: 'error', title: 'API status: Quota exhausted' };
+    }
+    if (status === 429 || combined.includes('rate limit') || combined.includes('too many')) {
+      return { state: 'rate-limit', title: 'API status: Rate limit reached (Too many people talking!)' };
+    }
+    return { state: 'error', title: 'API status: API error' };
+  }
+
   function setCallOverlayOpen(open) {
     if (!callOverlay) return;
     callOverlay.classList.toggle('active', !!open);
@@ -587,14 +713,72 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function addChatMessage(text, sender) {
+  function sanitizeHttpUrl(candidate) {
+    let u = String(candidate || '').trim();
+    if (!/^https?:\/\//i.test(u)) return null;
+    while (u.length > 9 && /[),.;!?]+$/.test(u)) u = u.slice(0, -1);
+    try {
+      const url = new URL(u);
+      if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+      return url.href;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /** Append plaintext mixed with clickable http(s) links (safe DOM nodes, no HTML injection). */
+  function fillBubbleWithUrls(el, plaintext) {
+    el.innerHTML = '';
+    const raw = String(plaintext ?? '');
+    const urlRe = /\b(https?:\/\/[^\s<>"'`()\[\]]+)/gi;
+    let lastIdx = 0;
+    let m = null;
+    while ((m = urlRe.exec(raw)) !== null) {
+      if (m.index > lastIdx) el.appendChild(document.createTextNode(raw.slice(lastIdx, m.index)));
+
+      let token = (m[0] || '').trim();
+      let trailing = '';
+      while (token.length > 12 && /[),.;!?]+$/.test(token)) {
+        trailing = token.slice(-1) + trailing;
+        token = token.slice(0, -1);
+      }
+
+      const href = sanitizeHttpUrl(token);
+      if (href) {
+        const a = document.createElement('a');
+        a.className = 'chat-link';
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.textContent = token;
+        el.appendChild(a);
+        if (trailing) el.appendChild(document.createTextNode(trailing));
+      } else {
+        el.appendChild(document.createTextNode(m[0]));
+      }
+
+      lastIdx = m.index + (m[0] || '').length;
+    }
+    if (lastIdx < raw.length) el.appendChild(document.createTextNode(raw.slice(lastIdx)));
+  }
+
+  function textForSpeech(visibleTextPlain) {
+    return String(visibleTextPlain || '')
+      .replace(/\bhttps?:\/\/\S+/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function addChatMessage(text, sender, options = {}) {
     if (!chatMessages) return null;
+    const { linkifyUrls = false } = options || {};
     const msg = document.createElement('div');
     msg.className = `message ${sender}`;
-    msg.innerText = text;
+    if (linkifyUrls && sender === 'bot') fillBubbleWithUrls(msg, text);
+    else msg.innerText = text;
     if (chatAnchor && chatAnchor.parentElement === chatMessages) {
       chatMessages.insertBefore(msg, chatAnchor);
-    } else {
+  } else {
       chatMessages.appendChild(msg);
     }
     scrollChatToBottom();
@@ -787,7 +971,7 @@ document.addEventListener('DOMContentLoaded', () => {
       addChatMessage('Switched to light mode.', 'bot');
       return;
     }
-
+    
     chatInput.value = '';
     addChatMessage(userText, 'user');
     messages.push({ id: Date.now().toString() + '-u', role: 'user', text: userText });
@@ -800,21 +984,13 @@ document.addEventListener('DOMContentLoaded', () => {
       const { cleanedText } = handleSystemCommand(reply);
       const shown = cleanedText || 'Done.';
       setApiStatus('connected', 'API status: Connected');
-      addChatMessage(shown, 'bot');
+      addChatMessage(shown, 'bot', { linkifyUrls: true });
       messages.push({ id: Date.now().toString() + '-m', role: 'model', text: shown });
-      speakText(shown);
+      speakText(textForSpeech(shown));
     } catch (err) {
       if (typing) typing.remove();
-      const errMsg = String(err?.message || '');
-      const detailText = JSON.stringify(err?.detail || '').toLowerCase();
-      const combined = `${errMsg.toLowerCase()} ${detailText}`;
-      if (combined.includes('quota') || combined.includes('resource_exhausted')) {
-        setApiStatus('error', 'API status: Quota exhausted');
-      } else if (Number(err?.status) === 429 || combined.includes('rate limit') || combined.includes('too many')) {
-        setApiStatus('rate-limit', 'API status: Rate limit reached (too many requests)');
-      } else {
-        setApiStatus('error', 'API status: Error');
-      }
+      const classification = classifyApiError(err);
+      setApiStatus(classification.state, classification.title);
       addChatMessage(
         /api key/i.test(String(err?.message || ''))
           ? 'Gemini API key is not configured on the server.'
