@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gaurab Giri - Portfolio</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-dragdata@2.2.3/dist/chartjs-plugin-dragdata.min.js"></script>
+</head>
+<body>
+
+  <div class="bg-animation-layer" aria-hidden="true">
+    <span class="bg-orb bg-orb-1"></span>
+    <span class="bg-orb bg-orb-2"></span>
+    <span class="bg-orb bg-orb-3"></span>
+    <span class="bg-orb bg-orb-4"></span>
+    <span class="bg-orb bg-orb-5"></span>
+    <span class="bg-orb bg-orb-6"></span>
+    <span class="bg-orb bg-orb-7"></span>
+    <span class="bg-orb bg-orb-8"></span>
+    <span class="bg-orb bg-orb-9"></span>
+  </div>
+
+  <button class="bg-animation-toggle" id="bgAnimationToggle" title="Toggle background animation" aria-label="Toggle background animation">✨</button>
+
+  <div class="container">
+    <div class="cover">
+      <div class="profile-pic">
+        <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcRwv5RMwSOhScAXDMzGYl02ail3aqHOCg92u1IVPF6w3Kr2jYhVUwIXA7HTQ&s&ec=121507538" alt="Gaurab Giri">
+      </div>
+    </div>
+    
+    <div class="text-center header-content">
+      <h1>Gaurab Giri</h1>
+      <p class="subtitle">Computer Science & Business Analytics (Honors) Undergraduate</p>
+      <p class="subtitle contact-info">
+        ggiri@caldwell.edu • 862-459-8516 <br>
+        <a href="https://www.linkedin.com/in/gaurab-giri-6890591b7/" target="_blank">LinkedIn</a> | 
+        <a href="https://github.com/Gaurab-Giri" target="_blank">GitHub</a> |
+        <a href="https://gaurab-giri.github.io" target="_blank" rel="noopener">Portfolio</a>
+      </p>
+      <p>
+        <a href="Resume_May.pdf" class="btn-view" target="_blank" rel="noopener">View Resume</a>
+      </p>
+    </div>
+
+    <div class="main">
+      <ul class="tabs">
+        <li data-target="education" class="active">Education</li>
+        <li data-target="skills">Skills</li>
+        <li data-target="experience">Experience</li>
+        <li data-target="community">Community</li>
+        <li data-target="projects">Projects</li>
+        <li data-target="contact">Contact</li>
+        <li data-target="entertainment">Games &amp; Tools</li>
+        <li data-target="news">News</li>
+      </ul>
+
+      <div id="education" class="tab-content active">
+        <div class="item">
+          <div class="item-header">
+            <strong>Caldwell University</strong>
+            <span class="date">Aug 2024 – May 2028</span>
+          </div>
+          <p>Bachelor of Science in Computer Science &amp; Business Analytics — Honors Program</p>
+          <div class="coursework">
+            <strong>Relevant Coursework</strong>
+            <ul>
+              <li>Computer Programming I & II</li>
+              <li>Data Structures</li>
+              <li>Database Management</li>
+              <li>Operating Systems</li>
+              <li>Windows Programming</li>
+              <li>Front-end Development</li>
+              <li>UI/UX Design</li>
+              <li>Fundamentals of MIS</li>
+              <li>Business Spreadsheet</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+
+      <div id="skills" class="tab-content">
+        <div class="skill-group skill-group-chart-trigger" id="programmingLanguagesGroup" title="Click to view skills chart">
+          <strong>Programming Languages</strong>
+          <p>Python, JavaScript, SQL, HTML/CSS, C, C#</p>
+        </div>
+        <div class="skill-group">
+          <strong>Frameworks &amp; Libraries</strong>
+          <p>React, Next.js 14, Node.js, Tkinter</p>
+        </div>
+        <div class="skill-group">
+          <strong>Databases &amp; Tools</strong>
+          <p>MySQL, Supabase, SQLite, Docker, Git &amp; GitHub, VS Code, Cursor</p>
+        </div>
+        <div class="skill-group">
+          <strong>Data &amp; Productivity</strong>
+          <p>Excel (Advanced), Power BI, Teams, SharePoint, Outlook</p>
+        </div>
+      </div>
+
+      <div id="experience" class="tab-content">
+        <!-- Media: edit data-media-src="URL" and data-media-type="image|video|link" on each .item. Use "link" for Facebook/YouTube etc. -->
+        <div class="item" data-media-src="" data-media-type="image">
+          <div class="item-header">
+            <strong>Undergraduate Student Lab Instructor</strong>
+            <span class="item-header-right"><span class="date">Jan 2025 – Jun 2025</span><button class="btn-media-icon" title="View media" aria-label="View media">🖼</button></span>
+          </div>
+          <p class="institution">Caldwell University</p>
+          <ul>
+            <li>Led 15+ interactive lab sessions, resulting in a 25% increase in students’ assessment performance.</li>
+            <li>Explained technical concepts verbally and through code, boosting student scores by 15%.</li>
+          </ul>
+        </div>
+        <div class="item" data-media-src="" data-media-type="image">
+          <div class="item-header">
+            <strong>Peer Tutor — Academic Success Center</strong>
+            <span class="item-header-right"><span class="date">Dec 2024 – Present</span><button class="btn-media-icon" title="View media" aria-label="View media">🖼</button></span>
+          </div>
+          <p class="institution">Caldwell University</p>
+          <ul>
+            <li>Assisted 100+ students in CS courses, providing clear explanations and troubleshooting help for programming assignments.</li>
+          </ul>
+        </div>
+        <div class="item" data-media-src="SGA1.png,SGA2.png" data-media-type="image">
+          <div class="item-header">
+            <strong>Senator, Class of 2028 — Student Government Association</strong>
+            <span class="item-header-right"><span class="date">Sep 2024 – Present</span><button class="btn-media-icon" title="View media" aria-label="View media">🖼</button></span>
+          </div>
+          <p class="institution">Caldwell University</p>
+          <ul>
+            <li>Represented 200+ students, advocating for academic policies and organizing 3 events that increased engagement by 40%.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="community" class="tab-content">
+        <div class="item" data-media-src="Crits1.png,Crits2.png,Crits3.png" data-media-type="image">
+          <div class="item-header">
+            <strong>Secretary — The Crits</strong>
+            <span class="item-header-right"><span class="date">2023 – Present</span><button class="btn-media-icon" title="View media" aria-label="View media">🖼</button></span>
+          </div>
+          <p>Co-founded and led The Crits, a national initiative empowering youth through digital literacy and career counseling.</p>
+          <ul>
+            <li>Delivered interactive workshops to over 1,000 students across urban and rural Nepal.</li>
+            <li>Enhanced their skills and awareness in digital literacy and career development.</li>
+          </ul>
+        </div>
+        <div class="item" data-media-src="AskMatrab1.png,AskMatrab2.png" data-media-type="image">
+          <div class="item-header">
+            <strong>Creator — Askmattrab</strong>
+            <span class="item-header-right"><span class="date">2023 – Present</span><button class="btn-media-icon" title="View media" aria-label="View media">🖼</button></span>
+          </div>
+          <ul>
+            <li>Uploaded math problems and solutions to a platform for learners.</li>
+            <li>Created instructional materials that improved learners' understanding of advanced mathematical problem-solving techniques.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="projects" class="tab-content">
+        <div class="item">
+          <div class="item-header"><strong>Feedora</strong></div>
+          <p><strong>Stack:</strong> Python, React, Next.js, Supabase, Claude API</p>
+          <p><strong>Live:</strong> 2025</p>
+          <a href="https://feedora-gamma.vercel.app/" target="_blank" rel="noopener" class="link-github">Live Demo</a>
+          <ul>
+            <li>Built an AI-powered news aggregator that curates and summarizes content from multiple RSS sources in real time.</li>
+            <li>Integrated Claude API for article summarization; moved RSS fetching server-side to resolve CORS issues; added dark/light mode and bookmarking.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="item-header"><strong>RT Convo</strong></div>
+          <p><strong>Stack:</strong> Next.js 14, Supabase, WebRTC, Gemini API</p>
+          <p><strong>Live:</strong> 2025</p>
+          <a href="https://rt-convo-pw25.vercel.app/login" target="_blank" rel="noopener" class="link-github">Live Demo</a>
+          <ul>
+            <li>Developed a real-time messaging platform supporting 1-on-1 and group chats, plus WebRTC voice/video calls.</li>
+            <li>Managed user authentication, database schema migrations in Supabase, and production deployments via Vercel; added AI auto-reply.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="item-header"><strong>GlobeNest</strong></div>
+          <p><strong>Stack:</strong> Next.js, Supabase, Mapbox</p>
+          <p><strong>Live:</strong> 2025</p>
+          <a href="https://globenest-opal.vercel.app/auth" target="_blank" rel="noopener" class="link-github">Live Demo</a>
+          <ul>
+            <li>Built a private, real-time family presence platform with live map pins, safety check-ins, and invite-only circles.</li>
+            <li>Implemented real-time location sharing, timezone-aware presence modes, and mood/weather overlays using Supabase and Mapbox.</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="item-header"><strong>IT Help Desk Ticket Tracker</strong></div>
+          <p><strong>Stack:</strong> Python, MySQL, Docker</p>
+          <p><strong>GitHub:</strong> 2024</p>
+          <a href="https://github.com/Gaurab-Giri/helpdesk-ticket-tracker" target="_blank" rel="noopener" class="link-github">GitHub Repo</a>
+          <ul>
+            <li>Built a full-stack help desk ticketing system to log, track, and manage IT support incidents with status updates and priority levels.</li>
+            <li>Implemented persistent MySQL storage and Dockerized the app for portability, mirroring real-world incident management workflows.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="contact" class="tab-content">
+        <div class="contact-wrapper">
+          <div class="contact-info-sidebar">
+            <h3>Get In Touch</h3>
+            <p class="contact-intro">I'd love to hear from you. Reach out via email, phone, or connect on socials.</p>
+            <div class="info-cards">
+              <a href="mailto:ggiri@caldwell.edu" class="info-card">
+                <span class="info-icon">✉</span>
+                <strong>Email</strong>
+                <span>ggiri@caldwell.edu</span>
+              </a>
+              <a href="tel:+18624598516" class="info-card">
+                <span class="info-icon">📞</span>
+                <strong>Phone</strong>
+                <span>862-459-8516</span>
+              </a>
+              <div class="info-card info-card-static">
+                <span class="info-icon">📍</span>
+                <strong>Location</strong>
+                <span>Caldwell, NJ</span>
+              </div>
+            </div>
+            <div class="contact-socials">
+              <a href="https://www.linkedin.com/in/gaurab-giri-6890591b7/" target="_blank" rel="noopener" class="social-btn linkedin">LinkedIn</a>
+              <a href="https://github.com/Gaurab-Giri" target="_blank" rel="noopener" class="social-btn github">GitHub</a>
+            </div>
+          </div>
+          <div class="contact-form-container">
+            <form id="contactForm">
+              <div class="form-row">
+                <div><label>Name</label><input type="text" name="name" placeholder="Your name" required></div>
+                <div><label>Email</label><input type="email" name="email" placeholder="your@email.com" required></div>
+              </div>
+              <label>Subject</label>
+              <select name="subject" required>
+                <option value="">Select a topic</option>
+                <option value="Work Opportunity">Work Opportunity</option>
+                <option value="Project Collaboration">Project Collaboration</option>
+                <option value="General Inquiry">General Inquiry</option>
+        <option value="Professional Suggestion / Feedback">Professional Suggestion / Feedback</option>
+              </select>
+              <label>Message</label>
+              <textarea name="message" placeholder="Write your message here..." rows="4" required></textarea>
+              <button type="submit" class="btn-submit">Send Message</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div id="entertainment" class="tab-content">
+        <section class="entertainment-section">
+          <h2 class="section-title">Dynamic GPA Scenario Planner</h2>
+          <div class="gpa-scenario-card item">
+            <p class="gpa-scenario-desc">Plan your path to your goal GPA. You can customize <strong>up to 2 semesters</strong> (drag points or use sliders). Unset semesters auto-adjust. Values can't go below the threshold needed to achieve your goal.</p>
+            <form class="gpa-scenario-form" id="gpaScenarioForm">
+              <div class="gpa-scenario-row">
+                <label for="scenarioCurrentGpa">Current GPA</label>
+                <input type="number" id="currGpa" name="scenarioCurrentGpa" min="0" max="4" step="0.01" placeholder="e.g. 3.5">
+              </div>
+              <div class="gpa-scenario-row">
+                <label for="scenarioCredits">Credits Earned</label>
+                <input type="number" id="scenarioCredits" min="0" step="1" placeholder="e.g. 60">
+              </div>
+              <div class="gpa-scenario-row">
+                <label for="scenarioGoalGpa">Target GPA</label>
+                <input type="number" id="targetGpa" name="scenarioGoalGpa" min="0" max="4" step="0.01" placeholder="e.g. 3.8">
+              </div>
+              <div class="gpa-scenario-row">
+                <label for="scenarioRemainingSems">Remaining Semesters</label>
+                <input type="number" id="scenarioRemainingSems" min="1" step="1" placeholder="e.g. 4">
+              </div>
+              <button type="submit" class="gpa-scenario-btn">Generate Scenario</button>
+            </form>
+            <div class="gpa-scenario-warning" id="gpaScenarioWarning" role="alert"></div>
+            <div class="gpa-scenario-actions">
+              <button type="button" class="gpa-reset-equal-btn" id="gpaResetEqualBtn" title="Reset all semesters to equal distribution">↺ Reset to equal</button>
+            </div>
+            <div class="gpa-scenario-chart-wrap gpa-drag-chart-container">
+              <canvas id="gpaDragChart"></canvas>
+            </div>
+            <div class="gpa-semester-sliders" id="gpaSemesterSliders"></div>
+          </div>
+        </section>
+
+        <section class="entertainment-section">
+          <h2 class="section-title">Games</h2>
+          <div class="entertainment-grid games-grid">
+            <div class="card game-card">
+              <h3>Retro Snake</h3>
+              <p class="card-desc">Use arrow keys. Eat food, avoid walls and yourself.</p>
+              <canvas id="snakeGame" width="280" height="280"></canvas>
+              <div class="game-meta">
+                <button id="startGame" class="btn-game">Start</button>
+                <span class="game-stat">Score: <strong id="score">0</strong></span>
+              </div>
+            </div>
+
+            <div class="card game-card">
+              <h3>Higher or Lower</h3>
+              <p class="card-desc">Guess if the next number (1–100) is higher or lower.</p>
+              <div class="hol-display"><span id="currentNum">50</span></div>
+              <div class="game-meta game-meta-btns">
+                <button onclick="guess('higher')" class="btn-game">Higher</button>
+                <button onclick="guess('lower')" class="btn-game">Lower</button>
+                <span class="game-stat">Streak: <strong id="guessScore">0</strong></span>
+              </div>
+            </div>
+
+            <div class="card game-card">
+              <h3>Memory Match</h3>
+              <p class="card-desc">Flip cards to find matching pairs.</p>
+              <div id="memoryBoard" class="memory-board"></div>
+              <div class="game-meta">
+                <button id="memoryStart" class="btn-game">New Game</button>
+                <span class="game-stat">Moves: <strong id="memoryMoves">0</strong></span>
+              </div>
+            </div>
+
+            <div class="card game-card">
+              <h3>Typing Speed Test</h3>
+              <p class="card-desc">Type the text below as fast as you can.</p>
+              <div id="typingQuote" class="typing-quote"></div>
+              <textarea id="typingInput" class="typing-input" placeholder="Start typing here..." rows="2" disabled></textarea>
+              <div class="game-meta">
+                <button id="typingStart" class="btn-game">Start Test</button>
+                <span class="game-stat">WPM: <strong id="typingWpm">—</strong></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="entertainment-section">
+          <h2 class="section-title">Media & Location</h2>
+          <div class="entertainment-grid media-grid">
+            <div class="card media-card">
+              <h3>Location & Weather</h3>
+              <div id="weather-display" class="weather-box">
+                <p id="temp-data">Fetching weather for Caldwell, NJ...</p>
+              </div>
+              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3020.3702111530396!2d-74.2789!3d40.8384!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x89c3000000000001%3A0x0!2zNDDCsDUwJzE4LjIiTiA3NMKwMTYnNDQuMCJX!5e0!3m2!1sen!2sus!4v1700000000000" width="100%" height="200" style="border:0; border-radius: 8px; margin-top:10px;" allowfullscreen="" loading="lazy"></iframe>
+            </div>
+            <div class="card media-card">
+              <h3>Media Showcase</h3>
+              <video id="pageVideo" controls width="100%"><source src="suprima.mp4" type="video/mp4"></video>
+              <audio id="pageAudio" controls style="width: 100%; margin-top: 10px;"><source src="bgmusic.mp3" type="audio/mpeg"></audio>
+            </div>
+          </div>
+        </section>
+
+        <div class="visit-counter-wrap">
+          <span class="visit-counter">Visits: <strong id="visitCount">0</strong></span>
+          <button type="button" class="visit-reset-btn" id="visitResetBtn" title="Reset visit count">Reset</button>
+        </div>
+      </div>
+
+      <div id="news" class="tab-content">
+        <section class="news-section">
+          <h2 class="section-title">Live World News</h2>
+          <div class="news-filter-bar">
+            <button class="news-filter-btn active" data-category="">All</button>
+            <button class="news-filter-btn" data-category="technology">Tech</button>
+            <button class="news-filter-btn" data-category="business">Business</button>
+            <button class="news-filter-btn" data-category="general">World</button>
+            <button class="news-filter-btn" data-category="science">Science</button>
+          </div>
+          <p class="news-last-updated" id="newsLastUpdated">—</p>
+          <div id="newsContainer" class="news-grid">
+            <div id="newsSkeleton" class="news-skeleton" aria-live="polite">
+              <div class="news-skeleton-card"></div>
+              <div class="news-skeleton-card"></div>
+              <div class="news-skeleton-card"></div>
+              <div class="news-skeleton-card"></div>
+              <div class="news-skeleton-card"></div>
+              <div class="news-skeleton-card"></div>
+            </div>
+            <div id="newsError" class="news-error" style="display:none;">
+              <p>Failed to load news. Check your connection or try again later.</p>
+              <button type="button" class="news-retry-btn" id="newsRetryBtn">Retry</button>
+            </div>
+            <div id="newsCards" class="news-cards"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="skillsChartModal" class="skills-chart-modal" role="dialog" aria-modal="true" aria-label="Skills chart">
+    <div class="skills-chart-modal-backdrop"></div>
+    <div class="skills-chart-modal-content">
+      <button class="skills-chart-modal-close" aria-label="Close">&times;</button>
+      <div class="skills-chart-modal-body">
+        <h3 class="skills-chart-title">Programming Languages — Skill Level</h3>
+        <div class="skills-chart-container">
+          <canvas id="skillsChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mediaModal" class="media-modal" role="dialog" aria-modal="true" aria-label="Media viewer">
+    <div class="media-modal-backdrop"></div>
+    <div class="media-modal-content">
+      <button class="media-modal-close" aria-label="Close">&times;</button>
+      <div class="media-modal-body">
+        <img id="mediaModalImg" class="media-modal-img" alt="" style="display:none;">
+        <div id="mediaModalGallery" class="media-modal-gallery" style="display:none;"></div>
+        <video id="mediaModalVideo" class="media-modal-video" controls style="display:none;"></video>
+        <p id="mediaModalPlaceholder" class="media-modal-placeholder" style="display:none;">No media has been added yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <button class="chat-toggle" id="chatToggle" type="button">💬</button>
+
+  <div class="chat-widget" id="chatWidget">
+    <div id="chatBotView">
+      <div class="chat-header">
+        <span class="chat-title-wrap">Resume Bot <span id="apiStatusDot" class="api-status-dot api-status-unknown" title="API status: Unknown" aria-label="API status unknown"></span></span>
+        <div class="chat-header-actions">
+          <button class="chat-btn-mini" id="videoCallBtn" type="button">📹 Video Call</button>
+          <button class="chat-btn-mini" id="ttsToggle" type="button">🔊 TTS: Off</button>
+          <button class="close-chat" id="closeChat" type="button">&times;</button>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="message bot">
+          Hi! Ask me about Gaurab's resume, projects, skills, education, or community work.
+        </div>
+        <div id="chatAnchor"></div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatInput" placeholder="Type here..." />
+        <button id="voiceBtn" class="chat-voice-btn" type="button" title="Voice input" aria-label="Voice input">🎤</button>
+        <button id="sendMessage" type="button">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="call-overlay" id="callOverlay" aria-hidden="true">
+    <div class="call-overlay-backdrop"></div>
+    <div class="call-overlay-card" role="dialog" aria-modal="true" aria-label="Video call">
+      <div class="call-overlay-head">
+        <div class="call-overlay-title">
+          <strong>Live Call</strong>
+          <span class="call-overlay-sub">Anam Avatar</span>
+        </div>
+        <button type="button" class="call-overlay-close" id="hangupCallBtn" aria-label="Hang up">Hang Up</button>
+      </div>
+      <div class="call-overlay-body">
+        <video id="anamVideo" class="call-video" autoplay playsinline></video>
+        <div id="callStatus" class="call-status" aria-live="polite">Connecting…</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
