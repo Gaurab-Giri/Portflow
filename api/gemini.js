@@ -1,35 +1,14 @@
 /**
- * Vercel serverless function to proxy Gemini (Generative Language) requests.
- * Keeps GEMINI_API_KEY server-side.
+ * Vercel serverless proxy for Gemini with Google Search Grounding (built-in browsing).
  *
- * Implements function calling with `search_the_web` (Google Custom Search via ./search.js).
- *
- * Expected request body (POST):
+ * POST body:
  * {
  *   messages: [{ role: "user"|"model", text: string }, ...],
  *   model: "models/gemini-1.5-flash-latest" // optional
  * }
+ *
+ * Response: { text, modelUsed?, sources?: [{ uri, title }], webSearchQueries?: string[], groundingMetadata? }
  */
-
-const searchModule = require('./search');
-
-const TOOL_SEARCH_WEB = 'search_the_web';
-
-const SEARCH_TOOL_DECLARATION = {
-  name: TOOL_SEARCH_WEB,
-  description:
-    'Search the public web via Google Custom Search for current webpages, deals, prices, products, retailers, specs, availability, reviews, recent news.',
-  parameters: {
-    type: 'object',
-    properties: {
-      query: {
-        type: 'string',
-        description: 'Focused English search query; include brand, product model, retailer, region, date window, or coupon/deal wording as useful.',
-      },
-    },
-    required: ['query'],
-  },
-};
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -69,20 +48,19 @@ module.exports = async (req, res) => {
       }));
   }
 
-  const initialContents = buildConversationContents(rawMessages);
+  const contents = buildConversationContents(rawMessages);
 
-  if (!initialContents.length) {
+  if (!contents.length) {
     return res.status(400).json({ error: 'Missing messages content' });
   }
 
   const systemInstruction = [
     'You are Resume Bot for Gaurab Giri’s portfolio site.',
     '',
-    'If the user asks for live info, deals, shipping, store hours, promotions, comparisons, inventory, pricing, specs, retailer links, or other time-sensitive/product-specific details, call the search_the_web tool FIRST and base your reply on returned titles, snippets, and links.',
+    'You may use Grounding with Google Search when users ask about live deals, current prices, product availability, retailer offers, promotions, breaking news, or other time-bound web facts.',
+    'When search grounding returns sources, summarize clearly and include inline references to factual claims where appropriate; cite the pages you relied on.',
     '',
-    'After searching, summarize clearly with markdown-style bullet points when listing options. Prefer citing real URLs returned by search (titles + links); do not invent prices—only state prices/snippet hints that appear in search results.',
-    '',
-    'If the user asks to change theme or to navigate, you MUST include a command block in your response:',
+    'If the user asks to change theme or to navigate the portfolio, you MUST include a command block in your response:',
     '',
     'Command block format (must be valid JSON, wrapped exactly like this):',
     '<COMMAND>{"type":"theme","mode":"dark","accent":"#0d9488","bg":"#0b1220"}</COMMAND>',
@@ -98,23 +76,67 @@ module.exports = async (req, res) => {
     '- Do NOT wrap the whole message in code fences.',
   ].join('\n');
 
-  async function invokeSearchTool(fc) {
-    const name = String(fc?.name || '');
-    const argsObj = fc?.args ?? fc?.arguments ?? {};
-    const rawQuery = typeof argsObj === 'string' ? argsObj : argsObj.query;
-    const query = String(rawQuery ?? '').trim();
+  /** Extract citation links Gemini returns alongside grounded answers */
+  function normalizeGrounding(candidate) {
+    const gm = candidate?.groundingMetadata || candidate?.grounding_metadata || null;
 
-    if (name !== TOOL_SEARCH_WEB) {
-      return { error: `Unknown tool: ${name}` };
+    if (!gm || typeof gm !== 'object') {
+      return {
+        sources: [],
+        webSearchQueries: [],
+        raw: gm || null,
+      };
     }
-    if (!searchModule?.searchTheWeb) {
-      return { error: 'Search handler is unavailable on server.' };
+
+    const webSearchQueries = Array.isArray(gm.webSearchQueries)
+      ? gm.webSearchQueries.map((q) => String(q || '').trim()).filter(Boolean)
+      : [];
+
+    /** @type {Array<{ uri: string, title: string }>} */
+    const sources = [];
+    const seen = new Set();
+
+    const chunks = gm.groundingChunks || gm.grounding_chunks || [];
+
+    for (const ch of chunks) {
+      if (!ch || typeof ch !== 'object') continue;
+
+      let web =
+        ch.web ||
+        ch.retrievedWeb ||
+        ch.retrieved_web ||
+        ch.chunk?.web ||
+        ch.chunk?.uri ||
+        null;
+
+      /** Some responses nest URI/title differently */
+      if (!web && ch.uri) {
+        web = { uri: ch.uri, title: ch.title };
+      }
+
+      let uri = web?.uri || web?.url || ch.uri || '';
+      const title = String(web?.title ?? ch.title ?? '').trim();
+      uri = typeof uri === 'string' ? uri.trim() : String(uri || '').trim();
+      if (!uri) continue;
+
+      let key = '';
+      try {
+        const parsed = new URL(uri);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') continue;
+        key = parsed.href.replace(/\/$/, '');
+      } catch {
+        continue;
+      }
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      sources.push({
+        uri: key,
+        title: title || key,
+      });
     }
-    try {
-      return await searchModule.searchTheWeb(query);
-    } catch (e) {
-      return { error: String(e?.message || e) };
-    }
+
+    return { sources, webSearchQueries, raw: gm };
   }
 
   function normalizeModelName(m) {
@@ -138,16 +160,15 @@ module.exports = async (req, res) => {
     return out;
   }
 
-  function buildGeminiPayload(contents) {
+  /**
+   * Google Search grounding per REST docs: ["google_search", {}].
+   * If the API rejects the key shape, callers may retry with alternate casing.
+   */
+  function buildPayload(toolEntry) {
     return {
       systemInstruction: { parts: [{ text: systemInstruction }] },
       contents,
-      tools: [{ functionDeclarations: [SEARCH_TOOL_DECLARATION] }],
-      toolConfig: {
-        functionCallingConfig: {
-          mode: 'AUTO',
-        },
-      },
+      tools: [toolEntry],
       generationConfig: {
         temperature: 0.65,
         maxOutputTokens: 1024,
@@ -155,16 +176,14 @@ module.exports = async (req, res) => {
     };
   }
 
-  async function callGenerate(modelName, contents) {
-    const payload = buildGeminiPayload(contents);
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }
-    );
+  async function callGenerate(modelName, toolEntry) {
+    const payload = buildPayload(toolEntry);
+    const url = `https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
     const data = await response.json().catch(() => ({}));
     return { response, data };
   }
@@ -175,143 +194,134 @@ module.exports = async (req, res) => {
     if (!r.ok) return [];
     return (d.models || [])
       .filter(
-        (m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes('generateContent')
+        (m) =>
+          Array.isArray(m.supportedGenerationMethods) &&
+          m.supportedGenerationMethods.includes('generateContent')
       )
       .map((m) => m.name)
       .filter((name) => /flash/i.test(name));
   }
 
-  const MAX_AGENT_STEPS = 5;
+  const toolVariants = [{ google_search: {} }, { googleSearch: {} }];
 
-  /**
-   * One multi-step agent loop (model chooses tools; we fulfill and continue) for a single Gemini model string.
-   */
-  async function runAgentWithTools(modelName) {
-    /** @type {Array<{role: string, parts: any[]}>} */
-    const contents = [...initialContents];
+  /** Try generating with grounding; retries alternate protobuf JSON key casing for the tool slot. */
+  async function generateGrounded(modelName, triedBucket) {
+    let lastFail = { response: { status: 0 }, data: {} };
+    for (const toolEntry of toolVariants) {
+      const { response, data } = await callGenerate(modelName, toolEntry);
+      if (response.ok) {
+        triedBucket.toolShape = Object.keys(toolEntry)[0];
+        const candidate = data?.candidates?.[0];
+        const text =
+          candidate?.content?.parts?.map((p) => p?.text || '').join('')?.trim() || '';
+        const { sources, webSearchQueries } = normalizeGrounding(candidate || {});
 
-    for (let step = 0; step < MAX_AGENT_STEPS; step++) {
-      const { response, data } = await callGenerate(modelName, contents);
-      if (!response.ok) {
-        return { ok: false, response, data, modelUsed: modelName };
+        return {
+          ok: true,
+          text,
+          groundingMetadata: candidate?.groundingMetadata || candidate?.grounding_metadata || null,
+          sources,
+          webSearchQueries,
+          modelUsed: modelName,
+        };
       }
 
-      const candidate = data?.candidates?.[0];
-      const candContent = candidate?.content;
-      if (!candContent || !Array.isArray(candContent.parts)) {
-        const textFallback =
-          data?.candidates?.[0]?.content?.parts?.map((p) => p?.text || '').join('')?.trim() || '';
-        return { ok: true, text: textFallback || 'I received an empty reply.', modelUsed: modelName, data };
-      }
+      lastFail = { response, data };
+      const msg = String(data?.error?.message || '').toLowerCase();
+      /** Retry alternate tool key casing on invalid / unknown enum */
+      const maybeShape =
+        response.status === 400 &&
+        (/unknown/i.test(msg) ||
+          /invalid/i.test(msg) ||
+          /unrecognized/i.test(msg) ||
+          /field/i.test(msg) ||
+          /parse/i.test(msg));
 
-      /** @type {any[]} */
-      const partsOut = candContent.parts;
-      const textPieces = [];
-      /** @type {any[]} */
-      const functionCalls = [];
-
-      for (const p of partsOut) {
-        if (typeof p?.text === 'string' && p.text) textPieces.push(p.text);
-        if (p?.functionCall && (p.functionCall.name || '').trim()) functionCalls.push(p.functionCall);
-      }
-
-      /** Model turn MUST be recorded verbatim for the API */
-      const modelTurn = {
-        role: candContent.role || 'model',
-        parts: partsOut,
-      };
-      contents.push(modelTurn);
-
-      if (!functionCalls.length) {
-        const text = textPieces.join('').trim();
-        return { ok: true, text, modelUsed: modelName };
-      }
-
-      /** Single user turn with parallel function responses */
-      const frParts = [];
-      for (const fc of functionCalls) {
-        const structured = await invokeSearchTool(fc);
-        frParts.push({
-          functionResponse: {
-            name: fc.name,
-            response: structured,
-          },
-        });
-      }
-      contents.push({ role: 'user', parts: frParts });
+      if (!maybeShape) break;
     }
 
-    return {
-      ok: true,
-      text: 'Stopped after too many search steps — please simplify your question.',
-      modelUsed: modelName,
-    };
+    return { ok: false, response: lastFail.response, data: lastFail.data, modelUsed: modelName };
   }
 
   try {
     const tried = [];
-    const candidates = candidateModels(modelInput);
+    const modelCandidates = candidateModels(modelInput);
 
-    for (const model of candidates) {
-      const agent = await runAgentWithTools(model);
-      tried.push({ model, agentOk: agent.ok, apiStatus: agent.response?.status ?? 200 });
+    for (const model of modelCandidates) {
+      const tb = {};
+      const out = await generateGrounded(model, tb);
 
-      if (!agent.ok) {
-        const { response, data } = agent;
-        tried[tried.length - 1].error = data?.error?.message || null;
-        tried[tried.length - 1].errorObj = data?.error || null;
-        const status404 = response?.status === 404;
-        const notFoundFlag = data?.error?.status === 'NOT_FOUND';
-        if (!(status404 || notFoundFlag)) {
-          return res.status(500).json({
-            error: data?.error?.message || 'Gemini proxy failed',
-            detail: data?.error || null,
-            tried,
-          });
-        }
-        continue;
+      tried.push({
+        model,
+        ok: out.ok,
+        apiStatus: out.response?.status ?? 200,
+        toolShape: tb.toolShape,
+        error: out.data?.error?.message ?? null,
+      });
+
+      if (out.ok) {
+        const text = out.text || 'I received a response but it was empty.';
+        return res.status(200).json({
+          text,
+          modelUsed: out.modelUsed,
+          sources: out.sources || [],
+          webSearchQueries: out.webSearchQueries || [],
+          groundingMetadata: out.groundingMetadata || null,
+        });
       }
 
-      const text =
-        typeof agent.text === 'string' && agent.text.trim()
-          ? agent.text.trim()
-          : '';
-      return res.status(200).json({ text, modelUsed: agent.modelUsed });
+      const status404 = out.response?.status === 404;
+      const notFoundFlag = out.data?.error?.status === 'NOT_FOUND';
+      if (!(status404 || notFoundFlag)) {
+        return res.status(500).json({
+          error: out.data?.error?.message || 'Gemini proxy failed',
+          detail: out.data?.error || null,
+          tried,
+        });
+      }
     }
 
     const discovered = await listFlashModels();
     for (const model of discovered) {
-      if (candidates.includes(model)) continue;
+      if (modelCandidates.includes(model)) continue;
 
-      const agent = await runAgentWithTools(model);
-      tried.push({ model, agentOk: agent.ok, apiStatus: agent.response?.status ?? 200 });
+      const tb = {};
+      const out = await generateGrounded(model, tb);
+      tried.push({
+        model,
+        ok: out.ok,
+        apiStatus: out.response?.status ?? 200,
+        toolShape: tb.toolShape,
+        error: out.data?.error?.message ?? null,
+      });
 
-      if (!agent.ok) {
-        const { response, data } = agent;
-        tried[tried.length - 1].error = data?.error?.message || null;
-        tried[tried.length - 1].errorObj = data?.error || null;
-        const status404 = response?.status === 404;
-        const notFoundFlag = data?.error?.status === 'NOT_FOUND';
-        if (!(status404 || notFoundFlag)) {
-          return res.status(500).json({
-            error: data?.error?.message || 'Gemini proxy failed',
-            detail: data?.error || null,
-            tried,
-            discovered,
-          });
-        }
-        continue;
+      if (out.ok) {
+        const text = out.text || 'I received a response but it was empty.';
+        return res.status(200).json({
+          text,
+          modelUsed: out.modelUsed,
+          discoveredUsed: model,
+          sources: out.sources || [],
+          webSearchQueries: out.webSearchQueries || [],
+          groundingMetadata: out.groundingMetadata || null,
+        });
       }
 
-      const text =
-        typeof agent.text === 'string' && agent.text.trim()
-          ? agent.text.trim()
-          : '';
-      return res.status(200).json({ text, modelUsed: agent.modelUsed, discoveredUsed: model });
+      const status404 = out.response?.status === 404;
+      const notFoundFlag = out.data?.error?.status === 'NOT_FOUND';
+      const otherError = !(status404 || notFoundFlag);
+      if (otherError) {
+        return res.status(500).json({
+          error: out.data?.error?.message || 'Gemini proxy failed',
+          detail: out.data?.error || null,
+          tried,
+          discovered,
+        });
+      }
     }
 
     return res.status(500).json({
-      error: 'No compatible Gemini Flash model found for generateContent',
+      error: 'No compatible Gemini Flash model found or grounding failed',
       detail: { tried, discovered },
     });
   } catch (err) {

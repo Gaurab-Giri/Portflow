@@ -769,13 +769,58 @@ const tabContents = document.querySelectorAll(".tab-content");
       .trim();
   }
 
+  function attachGroundingCitations(messageEl, webSearchQueries, sources) {
+    const queries = Array.isArray(webSearchQueries) ? webSearchQueries.filter(Boolean) : [];
+    const links = Array.isArray(sources) ? sources.filter((s) => s && typeof s.uri === 'string') : [];
+    if (!queries.length && !links.length) return;
+
+    const box = document.createElement('div');
+    box.className = 'chat-grounding';
+
+    if (queries.length) {
+      const qRow = document.createElement('div');
+      qRow.className = 'chat-grounding-queries';
+      qRow.appendChild(document.createTextNode(`Web search${queries.length > 1 ? 'es' : ''}: ${queries.join(' • ')}`));
+      box.appendChild(qRow);
+    }
+
+    if (links.length) {
+      const list = document.createElement('ul');
+      list.className = 'chat-grounding-list';
+      for (const src of links) {
+        const href = sanitizeHttpUrl(String(src.uri || '').trim());
+        if (!href) continue;
+
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = href;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.className = 'chat-grounding-link';
+        a.textContent = (src.title && String(src.title).trim()) || href;
+        li.appendChild(a);
+        list.appendChild(li);
+      }
+      if (list.children.length > 0) {
+        const head = document.createElement('div');
+        head.className = 'chat-grounding-title';
+        head.textContent = 'Sources';
+        box.appendChild(head);
+        box.appendChild(list);
+      }
+    }
+
+    if (box.childNodes.length) messageEl.appendChild(box);
+  }
+
   function addChatMessage(text, sender, options = {}) {
     if (!chatMessages) return null;
-    const { linkifyUrls = false } = options || {};
+    const { linkifyUrls = false, webSearchQueries = [], sources = [] } = options || {};
     const msg = document.createElement('div');
     msg.className = `message ${sender}`;
     if (linkifyUrls && sender === 'bot') fillBubbleWithUrls(msg, text);
     else msg.innerText = text;
+    if (sender === 'bot') attachGroundingCitations(msg, webSearchQueries, sources);
     if (chatAnchor && chatAnchor.parentElement === chatMessages) {
       chatMessages.insertBefore(msg, chatAnchor);
   } else {
@@ -927,7 +972,12 @@ const tabContents = document.querySelectorAll(".tab-content");
       throw err;
     }
 
-    return data?.text?.trim() || 'I received a response but it was empty.';
+    const text = data?.text?.trim() || 'I received a response but it was empty.';
+    return {
+      text,
+      sources: Array.isArray(data?.sources) ? data.sources : [],
+      webSearchQueries: Array.isArray(data?.webSearchQueries) ? data.webSearchQueries : [],
+    };
   }
 
   async function handleChatSend() {
@@ -979,12 +1029,16 @@ const tabContents = document.querySelectorAll(".tab-content");
     isLoading = true;
     const typing = addTypingIndicator();
     try {
-      const reply = await geminiGenerate(messages);
+      const { text: reply, sources = [], webSearchQueries = [] } = await geminiGenerate(messages);
       if (typing) typing.remove();
       const { cleanedText } = handleSystemCommand(reply);
       const shown = cleanedText || 'Done.';
       setApiStatus('connected', 'API status: Connected');
-      addChatMessage(shown, 'bot', { linkifyUrls: true });
+      addChatMessage(shown, 'bot', {
+        linkifyUrls: true,
+        sources,
+        webSearchQueries,
+      });
       messages.push({ id: Date.now().toString() + '-m', role: 'model', text: shown });
       speakText(textForSpeech(shown));
     } catch (err) {

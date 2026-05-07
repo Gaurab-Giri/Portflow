@@ -1756,6 +1756,63 @@ body.dark-mode .message.bot a.chat-link {
 }
 
 body.dark-mode .message.bot a.chat-link:hover { color: #2dd4bf; }
+
+.message.bot .chat-grounding {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(15, 23, 42, 0.12);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-light);
+}
+
+.message.bot .chat-grounding-queries {
+  margin-bottom: 8px;
+  opacity: 0.95;
+  font-style: italic;
+}
+
+.message.bot .chat-grounding-title {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0f766e;
+  margin-bottom: 6px;
+}
+
+.message.bot .chat-grounding-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  list-style: disc;
+}
+
+.message.bot .chat-grounding-link {
+  color: #0f766e;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.message.bot .chat-grounding-link:hover {
+  color: #0d9488;
+}
+
+body.dark-mode .message.bot .chat-grounding {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+body.dark-mode .message.bot .chat-grounding-title {
+  color: #5eead4;
+}
+
+body.dark-mode .message.bot .chat-grounding-link {
+  color: #5eead4;
+}
+
+body.dark-mode .message.bot .chat-grounding-link:hover {
+  color: #2dd4bf;
+}
 .message.user {
   background: var(--primary);
   color: #fff;
