@@ -92,24 +92,147 @@ document.addEventListener('DOMContentLoaded', () => {
   mediaModal?.querySelector('.media-modal-close').addEventListener('click', closeMediaModal);
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mediaModal?.classList.contains('active')) closeMediaModal(); });
 
-  // 1. Tab Navigation
-const tabs = document.querySelectorAll(".tabs li");
-const tabContents = document.querySelectorAll(".tab-content");
+  // 1. Tab Navigation + Explore More+
+  const tabs = document.querySelectorAll(".tabs li");
+  const tabContents = document.querySelectorAll(".tab-content");
+  const exploreHub = document.getElementById("exploreHub");
+  const explorePanels = {
+    games: document.getElementById("explorePanelGames"),
+    tools: document.getElementById("explorePanelTools"),
+    news: document.getElementById("explorePanelNews"),
+    utilities: document.getElementById("explorePanelUtilities"),
+  };
+  const exploreDropdown = document.getElementById("exploreDropdown");
+  const exploreDropdownToggle = document.getElementById("exploreDropdownToggle");
+  const translatorModal = document.getElementById("translatorModal");
+  const exploreLanguageSelect = document.getElementById("exploreLanguageSelect");
+  const isCoarseMobile = window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 
-  tabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-          tabs.forEach(t => t.classList.remove("active"));
-          tabContents.forEach(c => c.classList.remove("active"));
-          tab.classList.add("active");
-          const targetId = tab.getAttribute("data-target");
-          document.getElementById(targetId).classList.add("active");
-          if (targetId === "news") window.dispatchEvent(new CustomEvent("newsTabShown"));
-      });
+  function setExploreDropdownOpen(open) {
+    if (!exploreDropdown || !exploreDropdownToggle) return;
+    exploreDropdown.hidden = !open;
+    exploreDropdownToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
+  function showExploreHub() {
+    if (exploreHub) exploreHub.hidden = false;
+    Object.values(explorePanels).forEach((p) => {
+      if (p) p.hidden = true;
+    });
+  }
+
+  function activateTab(targetId) {
+    tabs.forEach((t) => t.classList.remove("active"));
+    tabContents.forEach((c) => c.classList.remove("active"));
+    const tab = document.querySelector(`.tabs li[data-target="${targetId}"]`);
+    const panel = document.getElementById(targetId);
+    if (tab) tab.classList.add("active");
+    if (panel) panel.classList.add("active");
+    if (targetId === "explore") showExploreHub();
+  }
+
+  function openExplorePanel(key) {
+    activateTab("explore");
+    setExploreDropdownOpen(false);
+    if (exploreHub) exploreHub.hidden = true;
+    Object.entries(explorePanels).forEach(([k, el]) => {
+      if (el) el.hidden = k !== key;
+    });
+    if (key === "news") window.dispatchEvent(new CustomEvent("newsTabShown"));
+    const panel = explorePanels[key];
+    if (!isCoarseMobile && panel?.scrollIntoView) {
+      panel.scrollIntoView({ behavior: "auto", block: "start" });
+    }
+  }
+
+  function openExploreTranslatorModal() {
+    activateTab("explore");
+    setExploreDropdownOpen(false);
+    if (exploreLanguageSelect && languageSelect) {
+      exploreLanguageSelect.value = languageSelect.value || "en";
+    }
+    if (translatorModal) {
+      translatorModal.classList.add("active");
+      translatorModal.setAttribute("aria-hidden", "false");
+    }
+  }
+
+  function closeExploreModals() {
+    translatorModal?.classList.remove("active");
+    translatorModal?.setAttribute("aria-hidden", "true");
+  }
+
+  function handleExploreOpen(key) {
+    if (key === "translator") {
+      openExploreTranslatorModal();
+      return;
+    }
+    if (explorePanels[key]) openExplorePanel(key);
+  }
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", (e) => {
+      if (e.target.closest(".tabs-explore-caret") || e.target.closest(".explore-dropdown")) return;
+      setExploreDropdownOpen(false);
+      const targetId = tab.getAttribute("data-target");
+      activateTab(targetId);
+    });
+  });
+
+  exploreDropdownToggle?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = exploreDropdown?.hidden !== false;
+    if (willOpen) activateTab("explore");
+    setExploreDropdownOpen(willOpen);
+  });
+
+  document.querySelectorAll("[data-explore-open]").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleExploreOpen(btn.getAttribute("data-explore-open"));
+    });
+  });
+
+  document.querySelectorAll("[data-explore-back]").forEach((btn) => {
+    btn.addEventListener("click", () => showExploreHub());
+  });
+
+  document.querySelectorAll("[data-explore-modal-close]").forEach((btn) => {
+    btn.addEventListener("click", closeExploreModals);
+  });
+
+  exploreLanguageSelect?.addEventListener("change", () => {
+    if (!languageSelect) return;
+    languageSelect.value = exploreLanguageSelect.value;
+    languageSelect.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  document.getElementById("exploreUtilThemeBtn")?.addEventListener("click", () => {
+    themeModeBtn?.click();
+  });
+  document.getElementById("exploreUtilBgBtn")?.addEventListener("click", () => {
+    document.getElementById("bgAnimationToggle")?.click();
+  });
+  document.getElementById("exploreUtilChatBtn")?.addEventListener("click", () => {
+    document.getElementById("chatToggle")?.click();
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".tabs-explore-item")) setExploreDropdownOpen(false);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeExploreModals();
+      setExploreDropdownOpen(false);
+    }
   });
 
   // Header controls: Language + Dark/Bright mode
   const languageSelect = document.getElementById('languageSelect');
+  const languageToggleBtn = document.getElementById('languageToggleBtn');
+  const languageMenu = document.getElementById('languageMenu');
   const themeModeBtn = document.getElementById('themeModeBtn');
+  const themeModeIcon = document.getElementById('themeModeIcon');
   const TRANSLATE_SELECTOR = [
     '.header-content h1',
     '.header-content .subtitle',
@@ -147,14 +270,55 @@ const tabContents = document.querySelectorAll(".tab-content");
   function updateThemeModeButton() {
     if (!themeModeBtn) return;
     const dark = document.body.classList.contains('dark-mode');
-    themeModeBtn.textContent = dark ? '☀ Bright' : '🌙 Dark';
+    if (themeModeIcon) themeModeIcon.textContent = dark ? '☀' : '🌙';
+    themeModeBtn.title = dark ? 'Switch to light mode' : 'Switch to dark mode';
+    themeModeBtn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
   }
+
+  function setLanguageMenuOpen(open) {
+    if (!languageMenu || !languageToggleBtn) return;
+    languageMenu.hidden = !open;
+    languageToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+
+  function syncLanguageMenuSelection(lang) {
+    if (!languageMenu) return;
+    languageMenu.querySelectorAll('[data-lang]').forEach((btn) => {
+      const active = btn.getAttribute('data-lang') === lang;
+      btn.setAttribute('aria-current', active ? 'true' : 'false');
+    });
+  }
+
+  languageToggleBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setLanguageMenuOpen(languageMenu?.hidden !== false);
+  });
+
+  languageMenu?.querySelectorAll('[data-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lang = btn.getAttribute('data-lang') || 'en';
+      if (languageSelect) {
+        languageSelect.value = lang;
+        languageSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      syncLanguageMenuSelection(lang);
+      setLanguageMenuOpen(false);
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.site-toolbar-lang-wrap')) setLanguageMenuOpen(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') setLanguageMenuOpen(false);
+  });
 
   themeModeBtn?.addEventListener('click', () => {
     document.body.classList.toggle('dark-mode');
     updateThemeModeButton();
   });
   updateThemeModeButton();
+  syncLanguageMenuSelection(languageSelect?.value || 'en');
 
   function shouldSkipTranslation(text) {
     const t = (text || '').trim();
@@ -879,14 +1043,26 @@ const tabContents = document.querySelectorAll(".tab-content");
   }
 
   function openTab(target) {
-    const tab = document.querySelector(`.tabs li[data-target="${target}"]`);
-    if (tab) tab.click();
+    const key = String(target || '').toLowerCase();
+    if (key === 'news') {
+      openExplorePanel('news');
+      return;
+    }
+    if (key === 'entertainment' || key === 'games') {
+      openExplorePanel('games');
+      return;
+    }
+    if (key === 'tools') {
+      openExplorePanel('tools');
+      return;
+    }
+    activateTab(key);
   }
 
   function scrollToSection(target) {
     openTab(target);
     const el = document.getElementById(target);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el && !isCoarseMobile) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function openResume() {
